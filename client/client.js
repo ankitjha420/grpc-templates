@@ -50,8 +50,40 @@ function callGreetManyTimes() {
         console.log('Streaming ended')
     })
 }
+
+function callLongGreeting() {
+    const client = new service.GreetServiceClient(
+        'localhost:50051',
+        grpc.credentials.createInsecure())
+    const request = new greets.LongGreetRequest()
+
+    const call = client.longGreet(request, (err, response) => {
+        if (err) {
+            console.log(err)
+        }
+        else {
+            console.log('Server response:', response.getResult())
+        }
+    })
+    let count = 0
+    let intervalId = setInterval(() => {
+        console.log('Sending message', count)
+        const request = new greets.LongGreetRequest()
+        const greeting = new greets.Greeting()
+        greeting.setFirstName('ankit')
+        greeting.setLastName('jha')
+        request.setGreet(greeting)
+        call.write(request)
+        if (++count > 3) {
+            clearInterval(intervalId)
+            call.end()
+        }
+    }, 1000)
+
+}
 function main() {
-    callGreetManyTimes()
+    // greetMain()
+    // callGreetManyTimes()
+    callLongGreeting()
 }
 main()
-// greetMain()
