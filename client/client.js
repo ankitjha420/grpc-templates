@@ -1,8 +1,6 @@
 const grpc = require('@grpc/grpc-js')
 const greets = require('../server/proto/greet_pb')
 const service = require('../server/proto/greet_grpc_pb')
-const calculate = require('../server/proto/calculator_pb')
-const calculateService = require('../server/proto/calculator_grpc_pb')
 
 function greetMain() {
     const client = new service.GreetServiceClient(
@@ -25,26 +23,35 @@ function greetMain() {
     })
 }
 
-function calculateMain() {
-    const client = new calculateService.CalculationServiceClient(
+function callGreetManyTimes() {
+    const client = new service.GreetServiceClient(
         'localhost:50051',
         grpc.credentials.createInsecure())
+    const request = new greets.GreetManyTimesRequest()
+    const greet = new greets.Greeting()
+    greet.setFirstName("Ankit")
+    greet.setLastName("Jha")
+    request.setGreetmanytimes(greet)
 
-    const request = new calculate.CalculationRequest()
-    const calculation = new calculate.Calculation()
-    calculation.setA(10)
-    calculation.setB(20)
-    request.setCalculation(calculation)
+    const call = client.greetManyTimes(request, (err, response) => {
 
-    client.calculation(request, (err, response) => {
-        if (err) {
-            console.error(err)
-        }
-        else {
-            console.log("Calculation response: " + response.getResult())
-        }
+    })
+
+    call.on('data', (response) => {
+        console.log('Client Streaming Response: ', response.getResult())
+    })
+    call.on('status', (status) => {
+        console.log(status)
+    })
+    call.on('error', (error) => {
+        console.log(error)
+    })
+    call.on('end', () => {
+        console.log('Streaming ended')
     })
 }
-
+function main() {
+    callGreetManyTimes()
+}
+main()
 // greetMain()
-calculateMain()

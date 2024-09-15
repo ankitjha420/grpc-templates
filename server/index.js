@@ -1,11 +1,11 @@
 const grpc = require('@grpc/grpc-js')
 const greets = require('../server/proto/greet_pb')
 const service = require('../server/proto/greet_grpc_pb')
-const calculation = require('../server/proto/calculator_pb')
-const calculationService = require('../server/proto/calculator_grpc_pb')
+// const calculation = require('../server/proto/calculator_pb')
+// const calculationService = require('../server/proto/calculator_grpc_pb')
 
-/*
-    Implements the Greet RPC method
+/**
+* Implements the Greet RPC method
 */
 function greet (call, callback) {
     const greeting = new greets.GreetResponse()
@@ -15,8 +15,39 @@ function greet (call, callback) {
     callback(null, greeting)
 }
 
-/*
-    Implements the Calculate RPC method
+/**
+* Implements the GreetManyTimes RPC method
+*/
+function greetManyTimes(call) {
+    const firstName = call.request.getGreetmanytimes().getFirstName();
+    const lastName = call.request.getGreetmanytimes().getLastName();
+    const name = firstName + ' ' + lastName;
+
+    let count = 0;
+
+    function sendResponse() {
+        if (count >= 10) {
+            call.end();
+            return;
+        }
+
+        const greetManyTimesResponse = new greets.GreetManyTimesResponse();
+        greetManyTimesResponse.setResult(`Hello, ${name} - ${count + 1}`);
+
+        call.write(greetManyTimesResponse);
+        count++;
+
+        // Schedule the next response
+        setTimeout(sendResponse, 1000);
+    }
+
+    // Start sending responses
+    sendResponse();
+}
+
+
+/**
+* Implements the Calculate RPC method
 */
 function calculate(call, callback) {
     const calculation = new calculator.CalculationResponse()
@@ -41,7 +72,10 @@ function calculate(call, callback) {
 function main() {
     const server = new grpc.Server()
     // server.addService(service.GreetServiceService, {greet: greet})
-    server.addService(calculationService.CalculationServiceService, {calculation: calculation})
+    server.addService(service.GreetServiceService, {
+        greet: greet,
+        greetManyTimes: greetManyTimes
+    })
     server.bindAsync('127.0.0.1:50051', grpc.ServerCredentials.createInsecure(), () => {
         server.start()
         console.log("server is running")
